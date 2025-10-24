@@ -1,8 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Assimp;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
-using Assimp;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using PrimitiveType = OpenTK.Graphics.OpenGL4.PrimitiveType;
 
 namespace GlbOpenTKDemo.Rendering
 {
@@ -16,7 +18,7 @@ namespace GlbOpenTKDemo.Rendering
         private const int BytesPerMat4 = 16 * sizeof(float);
 
         // ---- GL / ressources
-        private readonly Shader _shader;          // shader principal (vertex avec block 'Bones')
+        private readonly CharShader _shader;          // shader principal (vertex avec block 'Bones')
         private int _bonesUbo = 0;
 
         // ---- Asset
@@ -51,8 +53,10 @@ namespace GlbOpenTKDemo.Rendering
         public Vector3 Center => _model.Center;
         public float Radius => _model.Radius;
 
+        static int dbg;
+
         // ---- ctor
-        private GlbCharacter(Shader skinningShader)
+        private GlbCharacter(CharShader skinningShader)
         {
             _shader = skinningShader ?? throw new ArgumentNullException(nameof(skinningShader));
             EnsureBonesUbo();
@@ -61,7 +65,7 @@ namespace GlbOpenTKDemo.Rendering
         /// <summary>
         /// Charge un personnage GLB et le prépare pour le rendu (UBO + binding du uniform block "Bones").
         /// </summary>
-        public static GlbCharacter Load(string glbPath, Shader skinningShader)
+        public static GlbCharacter Load(string glbPath, CharShader skinningShader)
         {
             var ch = new GlbCharacter(skinningShader);
 
@@ -118,6 +122,7 @@ namespace GlbOpenTKDemo.Rendering
         public void Play() => _animSpeed = Math.Max(_animSpeed, 0.0001f);
         public void Pause() => _animSpeed = 0f;
         public void SetSpeed(float speed) => _animSpeed = Math.Clamp(speed, 0f, 8f);
+        public float GetSpeed() => _animSpeed;
 
         public int AnimationCount => _scene?.AnimationCount ?? 0;
         public string AnimationName(int index)
@@ -168,24 +173,60 @@ namespace GlbOpenTKDemo.Rendering
             GL.BindBuffer(BufferTarget.UniformBuffer, _bonesUbo);
             unsafe
             {
-                int countBytes = Math.Max(1, Math.Min(_skeleton.BoneName.Count, MaxBones)) * BytesPerMat4;
                 fixed (Matrix4* ptr = &_palette[0])
-                    GL.BufferSubData(BufferTarget.UniformBuffer, IntPtr.Zero, countBytes, (IntPtr)ptr);
+                    GL.BufferSubData(BufferTarget.UniformBuffer, IntPtr.Zero, _palette.Length * (16 * sizeof(float)), (IntPtr)ptr);
+            }
+
+
+
+
+            if ((dbg++ % 30) == 0 && _skeleton.BoneName.Count > 0)
+            {
+                var b0 = _palette[0];
+               // System.Diagnostics.Debug.WriteLine($"Bone0 T=({b0.M41:0.###},{b0.M42:0.###},{b0.M43:0.###})");
+                //System.Diagnostics.Debug.WriteLine($"Char meshes={_model.Meshes.Count}, bones={_skeleton.BoneName.Count}");
+            }
+
+
+
+        }
+
+     
+        public void DebugDrawWith(CharShader dbgShader, Matrix4 view, Matrix4 proj)
+        {
+            if (_model.Meshes.Count == 0) return;
+
+            var model = Matrix4.CreateScale(5f) * Matrix4.CreateRotationX(MathHelper.DegreesToRadians(-90f));
+            dbgShader.Use();
+            dbgShader.Set("uView", view);
+            dbgShader.Set("uProj", proj);
+            dbgShader.Set("uModel", model);
+            dbgShader.Set("uColor", new OpenTK.Mathematics.Vector4(0.2f, 0.9f, 0.2f, 1f));
+
+            foreach (var m in _model.Meshes)
+            {
+                // Pas de textures / UBO ici
+                GL.BindVertexArray(m.VAO);
+                GL.DrawElements(PrimitiveType.Triangles, m.IndexCount, DrawElementsType.UnsignedInt, 0);
             }
         }
 
+
+
         /// <summary>Rend le personnage avec le shader fourni au constructeur (uModel/uView/uProj + Bones UBO binding).</summary>
-        public void Render(Matrix4 view, Matrix4 proj)
+        public void Render(Matrix4 view, Matrix4 proj) // pas besoin de camPos
         {
-            var model = BuildModelMatrix();
+            if (_model.Meshes.Count == 0) return;
+
+            // Matrice modèle "safe"
+            var model = BuildModelMatrix(); // (ou Matrix4.Identity pour tester)
+            var mvp = model * view * proj;  // notre Shader.Set enverra en transposé=false, donc on compose dans cet ordre
+                                            // si ton Shader.Set utilise glUniformMatrix4fv(transpose=false), alors préfère proj*view*model
+            mvp = proj * view * model;      // ← plus standard: MVP = P * V * M
 
             _shader.Use();
-            _shader.Set("uView", view);
-            _shader.Set("uProj", proj);
-            _shader.Set("uModel", model);
+            _shader.Set("uMVP", mvp);       // UNIQUE uniform
 
-            // (Le UBO 'Bones' est déjà bindé à binding point 0 et le block est lié au shader)
-            // Dessin des meshes
             foreach (var m in _model.Meshes)
                 m.Draw();
         }
@@ -217,12 +258,10 @@ namespace GlbOpenTKDemo.Rendering
             var ry = Matrix4.CreateRotationY(MathHelper.DegreesToRadians(EulerDeg.Y));
             var rz = Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(EulerDeg.Z));
             var rot = rz * ry * rx;
-            var scl = Matrix4.CreateScale(Scale);
+            var scl = Matrix4.CreateScale(Scale);               
             var toCenter = Matrix4.CreateTranslation(-_model.Center);
             var world = Matrix4.CreateTranslation(Position);
-
-            // T_world * R * S * T(-center)
-            return world * rot * scl * toCenter;
+            return world * rot * scl * toCenter; 
         }
 
         private void StartCrossfade(int toIndex, float durationSec)

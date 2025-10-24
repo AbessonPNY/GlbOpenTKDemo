@@ -46,7 +46,7 @@ namespace GlbOpenTKDemo.Rendering
                 throw new Exception("Import GLB failed or scene has no meshes.");
 
             // --- DEBUG animations ---
-            Debug.WriteLine($"[GLB] Animations: {scene.AnimationCount}");
+            //Debug.WriteLine($"[GLB] Animations: {scene.AnimationCount}");
             if (scene.HasAnimations)
             {
                 for (int i = 0; i < scene.AnimationCount; i++)
@@ -65,8 +65,8 @@ namespace GlbOpenTKDemo.Rendering
                     for (int c = 0; c < max; c++)
                     {
                         var ch = a.NodeAnimationChannels[c];
-                        Debug.WriteLine(
-                            $"     - {ch.NodeName}  posKeys={ch.PositionKeyCount}  rotKeys={ch.RotationKeyCount}  scaleKeys={ch.ScalingKeyCount}");
+                        //Debug.WriteLine(
+                          //  $"     - {ch.NodeName}  posKeys={ch.PositionKeyCount}  rotKeys={ch.RotationKeyCount}  scaleKeys={ch.ScalingKeyCount}");
                     }
                 }
             }
@@ -228,8 +228,8 @@ namespace GlbOpenTKDemo.Rendering
 
             // (option debug)
 #if DEBUG
-            System.Diagnostics.Debug.WriteLine(
-                $"[AnimDbg] name='{anim.Name}' tps={tps:0.###} durationTicks={durationTicks:0.###}  tTicks={tTicks:0.###}  (~{durationTicks / (tps == 0 ? 1 : tps):0.###}s)");
+            //System.Diagnostics.Debug.WriteLine(
+              //  $"[AnimDbg] name='{anim.Name}' tps={tps:0.###} durationTicks={durationTicks:0.###}  tTicks={tTicks:0.###}  (~{durationTicks / (tps == 0 ? 1 : tps):0.###}s)");
 #endif
 
 
@@ -287,8 +287,8 @@ namespace GlbOpenTKDemo.Rendering
                     if (firstMissing.Length < 400) firstMissing.AppendLine(name);
                 }
             }
-            System.Diagnostics.Debug.WriteLine($"[AnimDbg] bones={skel.BoneName.Count} matched={matched} missing={missing}");
-            if (missing > 0) System.Diagnostics.Debug.WriteLine($"[AnimDbg] first missing:\n{firstMissing}");
+            //System.Diagnostics.Debug.WriteLine($"[AnimDbg] bones={skel.BoneName.Count} matched={matched} missing={missing}");
+            //if (missing > 0) System.Diagnostics.Debug.WriteLine($"[AnimDbg] first missing:\n{firstMissing}");
 #endif
 
 

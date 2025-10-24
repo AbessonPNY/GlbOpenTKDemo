@@ -1,13 +1,15 @@
-using OpenTK.Graphics.OpenGL4;
+﻿using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
+using System.Diagnostics;
+
 
 namespace GlbOpenTKDemo.Rendering;
 
-public sealed class Shader : IDisposable
+public sealed class CharShader : IDisposable
 {
     private readonly int _program;
 
-    public Shader(string vertPath, string fragPath)
+    public CharShader(string vertPath, string fragPath)
     {
         string vert = File.ReadAllText(vertPath);
         string frag = File.ReadAllText(fragPath);
@@ -27,6 +29,21 @@ public sealed class Shader : IDisposable
         GL.DetachShader(_program, f);
         GL.DeleteShader(v);
         GL.DeleteShader(f);
+    }
+
+
+    public int GetBlockIndex(string blockName) => GL.GetUniformBlockIndex(_program, blockName);
+
+    public void DebugCheckUniformBlock(string blockName, int expectedBinding)
+    {
+        Debug.WriteLine("DebugCheckUniformBlock");
+        int idx = GL.GetUniformBlockIndex(_program, blockName);
+        Console.WriteLine($"[Shader] Block '{blockName}' index={idx}");
+        if (idx < 0) { Console.WriteLine(" introuvable (nom, #version, link)"); return; }
+
+        GL.GetActiveUniformBlock(_program, idx, ActiveUniformBlockParameter.UniformBlockBinding, out int binding);
+        GL.GetActiveUniformBlock(_program, idx, ActiveUniformBlockParameter.UniformBlockDataSize, out int size);
+        Debug.WriteLine($"  binding={binding}, dataSize={size} bytes");
     }
 
     private static int Compile(ShaderType type, string src)

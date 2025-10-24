@@ -20,11 +20,12 @@ public struct Vertex
 public sealed class GLMesh : IDisposable
 {
     public int VAO, VBO, EBO;
-    private int _vao, _vbo, _ebo;
+    private int _vao;
+    // private int _vao, _vbo, _ebo;
     public int IndexCount;
     public int? DiffuseTexture;
     private int _indexCount;
-    private int? _texture; // id OpenGL de la texture diffuse (ou null)
+   // private int? _texture; // id OpenGL de la texture diffuse (ou null)
 
 
     public void Dispose()
@@ -79,19 +80,18 @@ public sealed class GLMesh : IDisposable
 
     public void Draw()
     {
-        // Active la texture si présente (sur l’unité 0)
-        if (_texture.HasValue)
+      /*  bool hasTex = _texture.HasValue && _texture.Value != 0;
+        if (hasTex)
         {
             GL.ActiveTexture(TextureUnit.Texture0);
-            GL.BindTexture(TextureTarget.Texture2D, _texture.Value);
-            // Ton shader doit avoir 'uniform sampler2D uTex;' déjà fixé à 0 :
-            // _shader.Set("uTex", 0); (à faire une seule fois dans OnLoad)
-        }
-
+            GL.BindTexture(TextureTarget.Texture2D, _texture!.Value);
+        }*/
+        
         GL.BindVertexArray(_vao);
         GL.DrawElements(PrimitiveType.Triangles, _indexCount, DrawElementsType.UnsignedInt, 0);
         GL.BindVertexArray(0);
     }
+
 
 }
 

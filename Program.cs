@@ -21,7 +21,7 @@ public static class Program
     public static void Main(string[] args)
     {
         var gws = GameWindowSettings.Default;
-        var nws = new NativeWindowSettings
+        var nws = new NativeWindowSettings 
         {
             ClientSize = new Vector2i(1280, 720),
             Title = "GLB + Assimp + OpenTK (net8)"
